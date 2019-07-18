@@ -3,7 +3,7 @@ Manage messages more easily
 
 # Features
 This project contains three tools :
-## The messages repository class
+## 1. The messages repository class
 It helps developper to store/retrieve messages from different sources types in one instruction.
 
 ### Storage messages example
@@ -53,8 +53,8 @@ DATA lt_messages TYPE STANDARD TABLE OF bapiret2.
 li_messages->get( IMPORTING messages = lt_messages ).
 ```
 
-## Types availables
-### Storables
+### Types availables
+#### Storables
 - BAPIRET2
 - Table of BAPIRET2
 - Table of BDCMSGCOLL
@@ -64,16 +64,16 @@ li_messages->get( IMPORTING messages = lt_messages ).
 - LIF_MESSAGES interface (self)
 - SY
 
-### Retrievables
+#### Retrievables
 - BAPIRET2
 - Table of BAPIRET2
 - Table of BAL_S_MSG
 - BALLOGHNDL
 
-## How to add new type in/out ?
+### How to add new type in/out ?
 todo
 
-## The log messages manager class
+## 2. The log messages manager class
 It helps create/save/display messages from LIF_MESSAGES using BAL_LOG
 
 ## The log messages displayer class
