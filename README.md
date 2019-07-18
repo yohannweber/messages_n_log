@@ -3,6 +3,7 @@ Manage messages more easily
 
 # Features
 This project contains three tools :
+
 ## 1. The messages repository class
 It helps developper to store/retrieve messages from different sources types in one instruction.
 
@@ -76,7 +77,7 @@ todo
 ## 2. The log messages manager class
 It helps create/save/display messages from LIF_MESSAGES using BAL_LOG
 
-## The log messages displayer class
+## 3. The log messages displayer class
 It helps create/display messages from LIF_MESSAGES using BAL_LOG
 
 # Installation
