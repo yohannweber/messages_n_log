@@ -3,9 +3,10 @@ Manage messages more easily
 
 # Features
 This project contains three tools :
-1. a messages repository which helps developper to store / get the message more easily. (LIF_MESSAGES) LIF_MESSAGES gives the possibility to store message from different source of message type in one instrution :
+## The messages repository class
+It helps developper to store/retrieve messages from different sources types in one instrution.
 
-## Storage messages example
+### Storage messages example
 ```abap
 DATA li_messages TYPE REF TO lif_messages.
 DATA lt_messages TYPE STANDARD TABLE OF bapiret2.
@@ -40,11 +41,9 @@ li_messages->add(
 " append message from exception
 li_messages->add( lx_error_occurs ).
 ```
-  
 In the same way, it provides a one instruction effort to retrieve all the messages into a target type.
 
-
-## Retrieve messages example
+### Retrieve messages example
 ```abap
 "...
 DATA lt_ballog TYPE bal_t_msg.
@@ -60,7 +59,7 @@ li_messages->get( IMPORTING messages = lt_messages ).
 
 # Installation
 Create 2 includes by copy of MESSAGE_DEF and MESSAGE_IMP files.
-Then you can include them directly in your programs.
+Then you can include them directly in your program.
 
 # Examples
 You can find examples in the file MESSAGES_N_LOG_SAMPLE
