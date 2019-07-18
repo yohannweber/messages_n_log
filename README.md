@@ -53,6 +53,26 @@ DATA lt_messages TYPE STANDARD TABLE OF bapiret2.
 li_messages->get( IMPORTING messages = lt_messages ).
 ```
 
+## Types availables
+### Storables
+- BAPIRET2
+- Table of BAPIRET2
+- Table of BDCMSGCOLL
+- STRING
+- CHAR
+- IF_MESSAGE interface
+- LIF_MESSAGES interface (self)
+- SY
+
+### Retrievables
+- BAPIRET2
+- Table of BAPIRET2
+- Table of BAL_S_MSG
+- BALLOGHNDL
+
+## How to add new type in/out ?
+todo
+
 ## The log messages manager class
 It helps create/save/display messages from LIF_MESSAGES using BAL_LOG
 
