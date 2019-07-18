@@ -4,7 +4,7 @@ Manage messages more easily
 # Features
 This project contains three tools :
 ## The messages repository class
-It helps developper to store/retrieve messages from different sources types in one instrution.
+It helps developper to store/retrieve messages from different sources types in one instruction.
 
 ### Storage messages example
 ```abap
