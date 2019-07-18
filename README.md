@@ -53,9 +53,11 @@ DATA lt_messages TYPE STANDARD TABLE OF bapiret2.
 li_messages->get( IMPORTING messages = lt_messages ).
 ```
 
+## The log messages manager class
+It helps create/save/display messages from LIF_MESSAGES using BAL_LOG
 
-2. a log messages manager, which helps create/save/display messages from LIF_MESSAGES using BAL_LOG
-3. a log messages displayer, which helps create/display messages from LIF_MESSAGES using BAL_LOG
+## The log messages displayer class
+It helps create/display messages from LIF_MESSAGES using BAL_LOG
 
 # Installation
 Create 2 includes by copy of MESSAGE_DEF and MESSAGE_IMP files.
