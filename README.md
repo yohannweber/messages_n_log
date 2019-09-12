@@ -28,6 +28,8 @@ li_messages->add( lt_bdcmsgcoll ).
 
 " append messages from system
 li_messages->add( sy ).
+"... is the same like...
+li_messages->add( ).
 
 " append message from char
 li_messages->add( EXPORTING messages  = 'TEST' iv_msgty = 'I' ).
@@ -64,6 +66,9 @@ li_messages->get( IMPORTING messages = lt_messages ).
 - IF_MESSAGE interface
 - LIF_MESSAGES interface (self)
 - SY
+- BAPIRET1 
+- Table of BAPIRET1
+- Any kind of exception
 
 #### Retrievables
 - BAPIRET2
