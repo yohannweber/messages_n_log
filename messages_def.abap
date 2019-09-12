@@ -27,10 +27,13 @@ INTERFACE lif_log.
     create IMPORTING !is_log TYPE bal_s_log OPTIONAL
            RAISING   lcx_error_occurs,
     add_messages IMPORTING ii_messages TYPE REF TO lif_messages
-           RAISING   lcx_error_occurs,
-    display RAISING   lcx_error_occurs,
+                 RAISING   lcx_error_occurs,
+    display IMPORTING iv_raise_if_one_message TYPE boolean DEFAULT ''
+            RAISING   lcx_error_occurs,
     save RAISING   lcx_error_occurs,
-    get_log_handle RETURNING VALUE(rv_log_handle) TYPE balloghndl.
+    get_log_handle RETURNING VALUE(rv_log_handle) TYPE balloghndl,
+    get_display_profile RETURNING VALUE(rs_display_profile) TYPE bal_s_prof,
+    set_display_profile IMPORTING is_display_profile        TYPE bal_s_prof.
 
 
 ENDINTERFACE.                    "lif_log DEFINITION
@@ -41,7 +44,8 @@ ENDINTERFACE.                    "lif_log DEFINITION
 *----------------------------------------------------------------------*
 INTERFACE lif_messages_displayer.
   METHODS:
-    display_messages IMPORTING !ii_messages TYPE REF TO lif_messages
+    display_messages IMPORTING !ii_messages             TYPE REF TO lif_messages
+                               !iv_raise_if_one_message TYPE boolean DEFAULT ''
                      RAISING   lcx_error_occurs.
 
 
@@ -53,10 +57,12 @@ ENDINTERFACE.                    "lif_messages_displayer DEFINITION
 *----------------------------------------------------------------------*
 INTERFACE lif_messages.
   METHODS:
-    add IMPORTING !messages TYPE any
-                  !iv_msgty TYPE msgty OPTIONAL,
-    add_n_raise IMPORTING !messages TYPE any
+    add IMPORTING !messages TYPE any DEFAULT 0
+                  !iv_msgty TYPE msgty OPTIONAL
+                    PREFERRED PARAMETER messages,
+    add_n_raise IMPORTING !messages TYPE any   OPTIONAL
                           !iv_msgty TYPE msgty OPTIONAL
+                            PREFERRED PARAMETER messages
                 RAISING   lcx_e_or_a_type_occurs,
     get EXPORTING !messages TYPE any,
     set_current_level     IMPORTING !iv_current_level TYPE ballevel,
@@ -67,9 +73,20 @@ INTERFACE lif_messages.
     get_default_msg_type  RETURNING VALUE(rv_default_msg_type) TYPE symsgty,
     get_messages_count    RETURNING VALUE(rv_count) TYPE i,
     get_severity          RETURNING VALUE(rv_severity) TYPE symsgty,
+    get_integer_severity  RETURNING VALUE(rv_severity) TYPE i,
     increase_current_level,
     decrease_current_level,
     clear.
+
+  CONSTANTS:
+    BEGIN OF c_integer_severity,
+      empty       TYPE i VALUE 0,
+      success     TYPE i VALUE 1,
+      information TYPE i VALUE 2,
+      warning     TYPE i VALUE 3,
+      error       TYPE i VALUE 4,
+      abort       TYPE i VALUE 5,
+    END OF c_integer_severity.
 
 
 ENDINTERFACE.                    "lif_messages DEFINITION
@@ -95,6 +112,7 @@ INTERFACE lif_messages_internal.
     get_default_msg_type RETURNING VALUE(rv_default_msg_type) TYPE symsgty,
     get_messages_count RETURNING VALUE(rv_count) TYPE i,
     get_severity RETURNING VALUE(rv_severity) TYPE symsgty,
+    get_integer_severity  RETURNING VALUE(rv_severity) TYPE i,
     clear.
 
 
@@ -114,7 +132,8 @@ CLASS lcl_ballog DEFINITION.
       add_messages IMPORTING !ii_messages TYPE REF TO lif_messages
                    RAISING   lcx_error_occurs,
       get_log_handle RETURNING VALUE(rv_log_handle) TYPE balloghndl,
-      display RAISING lcx_error_occurs,
+      display IMPORTING iv_raise_if_one_message TYPE boolean DEFAULT ''
+              RAISING   lcx_error_occurs,
       get_display_profile RETURNING VALUE(rs_display_profile) TYPE bal_s_prof,
       set_display_profile IMPORTING is_display_profile        TYPE bal_s_prof.
 
@@ -137,7 +156,8 @@ CLASS lcl_messages_displayer DEFINITION ABSTRACT.
 
   PROTECTED SECTION.
     METHODS:
-      display_messages IMPORTING !ii_messages TYPE REF TO lif_messages OPTIONAL
+      display_messages IMPORTING !ii_messages             TYPE REF TO lif_messages OPTIONAL
+                                 !iv_raise_if_one_message TYPE boolean DEFAULT ''
                        RAISING   lcx_error_occurs.
 
     DATA: ms_display_profile TYPE bal_s_prof,
@@ -159,6 +179,22 @@ CLASS lcl_messages_displayer_popup DEFINITION INHERITING FROM lcl_messages_displ
   PUBLIC SECTION.
     METHODS constructor IMPORTING ii_log TYPE REF TO lif_log.
 ENDCLASS.                    "lcl_messages_displayer_popup DEFINITION
+CLASS lcl_messages_displayer_std DEFINITION INHERITING FROM lcl_messages_displayer.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING ii_log TYPE REF TO lif_log.
+ENDCLASS.
+CLASS lcl_messages_displayer_sgl_log DEFINITION INHERITING FROM lcl_messages_displayer.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING ii_log TYPE REF TO lif_log.
+ENDCLASS.
+CLASS lcl_messages_displayer_no_tree DEFINITION INHERITING FROM lcl_messages_displayer.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING ii_log TYPE REF TO lif_log.
+ENDCLASS.
+CLASS lcl_messages_displayer_detlevl DEFINITION INHERITING FROM lcl_messages_displayer.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING ii_log TYPE REF TO lif_log.
+ENDCLASS.
 *----------------------------------------------------------------------*
 *       CLASS lcl_messages DEFINITION
 *----------------------------------------------------------------------*
@@ -184,6 +220,7 @@ CLASS lcl_messages DEFINITION.
       get_default_msg_type RETURNING VALUE(rv_default_msg_type) TYPE symsgty,
       get_messages_count RETURNING VALUE(rv_count) TYPE i,
       get_severity RETURNING VALUE(rv_severity) TYPE symsgty,
+      get_integer_severity  RETURNING VALUE(rv_severity) TYPE i,
       increase_current_level,
       decrease_current_level,
       constructor,
@@ -236,7 +273,11 @@ CLASS lcl_messages_displayer_factory DEFINITION.
   PUBLIC SECTION.
     TYPES: ty_display_type(1) TYPE c.
     CONSTANTS:  BEGIN OF c_display_type,
-                  popup TYPE ty_display_type VALUE 'P',
+                  popup        TYPE ty_display_type VALUE 'P',
+                  standard     TYPE ty_display_type VALUE 'S',
+                  single_log   TYPE ty_display_type VALUE 'L',
+                  no_tree      TYPE ty_display_type VALUE 'T',
+                  detail_level TYPE ty_display_type VALUE 'D',
                 END OF c_display_type.
     CLASS-METHODS get_instance IMPORTING !iv_display_type             TYPE ty_display_type DEFAULT c_display_type-popup
                                          !iv_log_type                 TYPE lcl_log_factory=>ty_log_type DEFAULT lcl_log_factory=>c_log_type-ballog
@@ -258,22 +299,35 @@ CLASS lcl_messages_internal DEFINITION.
       constructor.
   PROTECTED SECTION.
     TYPES: BEGIN OF ty_internal_message,
-             index     TYPE i,
-             level     TYPE ballevel,
-             probclass TYPE balprobcl.
-            INCLUDE TYPE bapiret2.
-    TYPES: END OF ty_internal_message,
-    ty_t_internal_message TYPE STANDARD TABLE OF ty_internal_message WITH DEFAULT KEY.
+             type       TYPE  bapi_mtype,
+             id         TYPE  symsgid,
+             number     TYPE  symsgno,
+             message    TYPE  bapi_msg,
+             log_no     TYPE  balognr,
+             log_msg_no TYPE  balmnr,
+             message_v1 TYPE  symsgv,
+             message_v2 TYPE  symsgv,
+             message_v3 TYPE  symsgv,
+             message_v4 TYPE  symsgv,
+             parameter  TYPE  bapi_param,
+             row        TYPE  bapi_line,
+             field      TYPE  bapi_fld,
+             system     TYPE  bapilogsys,
+             index      TYPE i,
+             level      TYPE ballevel,
+             probclass  TYPE balprobcl,
+           END OF ty_internal_message,
+           ty_t_internal_message TYPE STANDARD TABLE OF ty_internal_message WITH DEFAULT KEY.
 
     METHODS :
-      append  IMPORTING !is_message TYPE bapiret2
+      append  IMPORTING !is_message TYPE ty_internal_message
               RAISING   lcx_e_or_a_type_occurs,
-      append_t  IMPORTING it_messages TYPE bapiret2_t
+      append_t  IMPORTING it_messages TYPE ty_t_internal_message
                 RAISING   lcx_e_or_a_type_occurs,
       mapping_to_internal
-        IMPORTING !messages TYPE any
-                  !iv_msgty TYPE msgty OPTIONAL
-        EXPORTING !internal TYPE REF TO data
+        IMPORTING !messages    TYPE any
+                  !iv_msgty    TYPE msgty OPTIONAL
+        EXPORTING !et_internal TYPE ty_t_internal_message
         RAISING   cx_sy_move_cast_error,
       mapping_to_external
         EXPORTING !messages TYPE any
@@ -288,9 +342,9 @@ CLASS lcl_messages_internal DEFINITION.
                       RAISING   cx_sy_move_cast_error,
       mapping_internal_to_bapiret2 IMPORTING !is_internal TYPE ty_internal_message
                                    EXPORTING !es_external TYPE bapiret2,
-      add_string_to_internal IMPORTING !message     TYPE string
-                             EXPORTING !et_messages TYPE bapiret2_t
-                             CHANGING  !cs_message  TYPE bapiret2,
+      add_string_to_internal IMPORTING !string      TYPE string
+                                       !is_message  TYPE ty_internal_message
+                             EXPORTING !et_messages TYPE ty_t_internal_message,
       set_current_level IMPORTING !iv_current_level TYPE ballevel,
       set_default_msg_type IMPORTING !iv_default_msg_type TYPE symsgty,
       set_current_probclass IMPORTING !iv_current_probclass TYPE balprobcl,
@@ -302,6 +356,7 @@ CLASS lcl_messages_internal DEFINITION.
       reset_default_values,
       adjust_severity IMPORTING !iv_severity TYPE symsgty,
       get_severity RETURNING VALUE(rv_severity) TYPE symsgty,
+      get_integer_severity  RETURNING VALUE(rv_severity) TYPE i,
       clear.
 
   PRIVATE SECTION.
@@ -333,6 +388,7 @@ ENDCLASS.                    "lcl_messages_balloghndl DEFINITION
 CLASS lcl_messages_bal_t_msg DEFINITION INHERITING FROM lcl_messages_internal.
   PROTECTED SECTION.
     METHODS mapping_to_external REDEFINITION.
+    METHODS mapping_to_internal REDEFINITION.
   PRIVATE SECTION.
 ENDCLASS.                    "lcl_messages_bal_t_msg DEFINITION
 
@@ -379,6 +435,17 @@ CLASS lcl_messages_bdcmsgcoll_t DEFINITION INHERITING FROM lcl_messages_internal
   PRIVATE SECTION.
 ENDCLASS.                    "lcl_messages_bdcmsgcoll_t DEFINITION
 
+CLASS lcl_messages_bapiret1 DEFINITION INHERITING FROM lcl_messages_internal.
+  PROTECTED SECTION.
+    METHODS mapping_to_internal REDEFINITION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+CLASS lcl_messages_bapiret1_t DEFINITION INHERITING FROM lcl_messages_internal.
+  PROTECTED SECTION.
+    METHODS mapping_to_internal REDEFINITION.
+  PRIVATE SECTION.
+ENDCLASS.
 *----------------------------------------------------------------------*
 *       CLASS lcl_messages_string DEFINITION
 *----------------------------------------------------------------------*
