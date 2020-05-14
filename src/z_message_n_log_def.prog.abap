@@ -69,6 +69,10 @@ INTERFACE lif_messages.
                             PREFERRED PARAMETER messages
                 RAISING   lcx_e_or_a_type_occurs,
     get EXPORTING !messages TYPE any,
+    set_current_context IMPORTING !is_current_context TYPE bal_s_cont,
+    set_current_params IMPORTING !is_current_params TYPE bal_s_parm,
+    get_current_params RETURNING VALUE(rs_current_params) TYPE bal_s_parm,
+    get_current_context     RETURNING VALUE(rs_current_context) TYPE bal_s_cont,
     set_current_level     IMPORTING !iv_current_level TYPE ballevel,
     set_current_probclass IMPORTING !iv_current_probclass TYPE balprobcl,
     get_current_level     RETURNING VALUE(rv_current_level) TYPE ballevel,
@@ -78,6 +82,7 @@ INTERFACE lif_messages.
     get_messages_count    RETURNING VALUE(rv_count) TYPE i,
     get_severity          RETURNING VALUE(rv_severity) TYPE symsgty,
     get_integer_severity  RETURNING VALUE(rv_severity) TYPE i,
+    to_string             RETURNING VALUE(rv_messages) TYPE string,
     increase_current_level,
     decrease_current_level,
     clear.
@@ -108,6 +113,10 @@ INTERFACE lif_messages_internal.
                 RAISING   lcx_e_or_a_type_occurs,
     get EXPORTING !messages TYPE any,
     copy IMPORTING !ii_messages TYPE REF TO lif_messages_internal,
+    set_current_context IMPORTING !is_current_context TYPE bal_s_cont,
+    set_current_params IMPORTING !is_current_params TYPE bal_s_parm,
+    get_current_params RETURNING VALUE(rs_current_params) TYPE bal_s_parm,
+    get_current_context RETURNING VALUE(rs_current_context) TYPE bal_s_cont,
     set_current_level     IMPORTING !iv_current_level TYPE ballevel,
     set_current_probclass IMPORTING !iv_current_probclass TYPE balprobcl,
     get_current_level     RETURNING VALUE(rv_current_level) TYPE ballevel,
@@ -115,6 +124,7 @@ INTERFACE lif_messages_internal.
     set_default_msg_type IMPORTING !iv_default_msg_type TYPE symsgty,
     get_default_msg_type RETURNING VALUE(rv_default_msg_type) TYPE symsgty,
     get_messages_count RETURNING VALUE(rv_count) TYPE i,
+    to_string RETURNING VALUE(rv_messages) TYPE string,
     get_severity RETURNING VALUE(rv_severity) TYPE symsgty,
     get_integer_severity  RETURNING VALUE(rv_severity) TYPE i,
     clear.
@@ -216,6 +226,11 @@ CLASS lcl_messages DEFINITION.
                             !iv_msgty TYPE msgty OPTIONAL
                   RAISING   lcx_e_or_a_type_occurs,
       get EXPORTING !messages TYPE any,
+      set_current_context IMPORTING !is_current_context TYPE bal_s_cont,
+      set_current_params IMPORTING !is_current_params TYPE bal_s_parm,
+      get_current_params     RETURNING VALUE(rs_current_params) TYPE bal_s_parm,
+      to_string RETURNING VALUE(rv_messages) type string,
+      get_current_context     RETURNING VALUE(rs_current_context) TYPE bal_s_cont,
       set_current_level     IMPORTING !iv_current_level TYPE ballevel,
       set_current_probclass IMPORTING !iv_current_probclass TYPE balprobcl,
       get_current_level     RETURNING VALUE(rv_current_level) TYPE ballevel,
@@ -320,6 +335,9 @@ CLASS lcl_messages_internal DEFINITION.
              index      TYPE  i,
              level      TYPE  ballevel,
              probclass  TYPE  balprobcl,
+             time_stmp  TYPE baltimstmp,
+             context    TYPE  bal_s_cont,
+             params     TYPE  bal_s_parm,
            END OF ty_internal_message,
            ty_t_internal_message TYPE STANDARD TABLE OF ty_internal_message WITH DEFAULT KEY.
 
@@ -344,12 +362,17 @@ CLASS lcl_messages_internal DEFINITION.
           RAISING   lcx_e_or_a_type_occurs,
       get             EXPORTING messages TYPE any
                       RAISING   cx_sy_move_cast_error,
+      to_string RETURNING VALUE(rv_messages) TYPE string,
       mapping_internal_to_bapiret2 IMPORTING !is_internal TYPE ty_internal_message
                                    EXPORTING !es_external TYPE bapiret2,
       add_string_to_internal IMPORTING !string      TYPE string
                                        !is_message  TYPE ty_internal_message
                              EXPORTING !et_messages TYPE ty_t_internal_message,
       set_current_level IMPORTING !iv_current_level TYPE ballevel,
+      set_current_context IMPORTING !is_current_context TYPE bal_s_cont,
+      set_current_params IMPORTING !is_current_params TYPE bal_s_parm,
+      get_current_params     RETURNING VALUE(rs_current_params) TYPE bal_s_parm,
+      get_current_context     RETURNING VALUE(rs_current_context) TYPE bal_s_cont,
       set_default_msg_type IMPORTING !iv_default_msg_type TYPE symsgty,
       set_current_probclass IMPORTING !iv_current_probclass TYPE balprobcl,
       get_current_level     RETURNING VALUE(rv_current_level) TYPE ballevel,
@@ -367,6 +390,8 @@ CLASS lcl_messages_internal DEFINITION.
 
     DATA: mt_messages          TYPE ty_t_internal_message,
           mv_current_level     TYPE ballevel,
+          ms_current_context   TYPE bal_s_cont,
+          ms_current_params    TYPE bal_s_parm,
           mv_current_probclass TYPE balprobcl,
           mv_severity          TYPE symsgty,
           mv_messages_count    TYPE i,
@@ -382,6 +407,7 @@ ENDCLASS.                    "lcl_messages_internal DEFINITION
 CLASS lcl_messages_balloghndl DEFINITION INHERITING FROM lcl_messages_internal.
   PROTECTED SECTION.
     METHODS mapping_to_external REDEFINITION.
+    METHODS mapping_to_internal REDEFINITION.
   PRIVATE SECTION.
 ENDCLASS.                    "lcl_messages_balloghndl DEFINITION
 *----------------------------------------------------------------------*
@@ -395,6 +421,17 @@ CLASS lcl_messages_bal_t_msg DEFINITION INHERITING FROM lcl_messages_internal.
     METHODS mapping_to_internal REDEFINITION.
   PRIVATE SECTION.
 ENDCLASS.                    "lcl_messages_bal_t_msg DEFINITION
+*----------------------------------------------------------------------*
+*       CLASS lcl_messages_bal_s_msg DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_messages_bal_s_msg DEFINITION INHERITING FROM lcl_messages_internal.
+  PROTECTED SECTION.
+    METHODS mapping_to_external REDEFINITION.
+    METHODS mapping_to_internal REDEFINITION.
+  PRIVATE SECTION.
+ENDCLASS.
 
 *----------------------------------------------------------------------*
 *       CLASS lcl_messages_bapi_order_rtrn_t DEFINITION

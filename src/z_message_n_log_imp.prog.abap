@@ -5,6 +5,18 @@
 
 CLASS lcl_messages_internal IMPLEMENTATION.
 
+  METHOD lif_messages_internal~set_current_context.
+    set_current_context( is_current_context ).
+  ENDMETHOD.
+  METHOD lif_messages_internal~set_current_params.
+    set_current_params( is_current_params ).
+  ENDMETHOD.
+  METHOD lif_messages_internal~get_current_params.
+    rs_current_params = get_current_params( ).
+  ENDMETHOD.
+  METHOD lif_messages_internal~get_current_context.
+    rs_current_context = get_current_context( ).
+  ENDMETHOD.
   METHOD lif_messages_internal~set_current_level.
     set_current_level( iv_current_level ).
   ENDMETHOD.                    "lif_messages_internal~set_current_level
@@ -89,6 +101,27 @@ CLASS lcl_messages_internal IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "mapping_internal_to_bapiret2
+  METHOD lif_messages_internal~to_string.
+    rv_messages = to_string( ).
+  ENDMETHOD.
+
+  METHOD to_string.
+    DATA ls_message TYPE ty_internal_message.
+    LOOP AT mt_messages INTO ls_message.
+      rv_messages = rv_messages  &&
+      ls_message-message     && ';' &&
+      ls_message-type        && ';' &&
+      ls_message-id          && ';' &&
+      ls_message-number      && ';' &&
+      ls_message-log_no      && ';' &&
+      ls_message-log_msg_no  && ';' &&
+      ls_message-message_v1  && ';' &&
+      ls_message-message_v2  && ';' &&
+      ls_message-message_v3  && ';' &&
+      ls_message-message_v4.
+
+    ENDLOOP.
+  ENDMETHOD.
 
   METHOD get.
 
@@ -109,6 +142,12 @@ CLASS lcl_messages_internal IMPLEMENTATION.
   METHOD set_current_level.
     mv_current_level = iv_current_level.
   ENDMETHOD.                    "set_current_level
+  METHOD set_current_context.
+    ms_current_context = is_current_context.
+  ENDMETHOD.
+  METHOD set_current_params.
+    ms_current_params = is_current_params.
+  ENDMETHOD.
 
   METHOD set_current_probclass.
     mv_current_probclass = iv_current_probclass.
@@ -117,7 +156,12 @@ CLASS lcl_messages_internal IMPLEMENTATION.
   METHOD get_current_level.
     rv_current_level = mv_current_level.
   ENDMETHOD.                    "get_current_level
-
+  METHOD get_current_params.
+    rs_current_params = ms_current_params.
+  ENDMETHOD.
+  METHOD get_current_context.
+    rs_current_context = ms_current_context.
+  ENDMETHOD.
   METHOD set_default_msg_type.
     mv_default_msg_type = iv_default_msg_type.
   ENDMETHOD.                    "set_default_msg_type
@@ -158,6 +202,9 @@ CLASS lcl_messages_internal IMPLEMENTATION.
           lv_length        TYPE i,
           ls_message       TYPE ty_internal_message.
 
+    IF string IS INITIAL.
+      RETURN.
+    ENDIF.
     lv_string_length = strlen( string ).
     ls_message = is_message.
 
@@ -296,6 +343,16 @@ CLASS lcl_messages_internal IMPLEMENTATION.
     IF ls_message-type IS INITIAL.
       ls_message-type = mv_default_msg_type.
     ENDIF.
+    IF ls_message-context IS INITIAL.
+      ls_message-context = ms_current_context.
+    ENDIF.
+    IF ls_message-params IS INITIAL.
+      ls_message-params = ms_current_params.
+    ENDIF.
+    IF ls_message-message IS INITIAL.
+      MESSAGE ID ls_message-id TYPE ls_message-type NUMBER ls_message-number INTO ls_message-message.
+    ENDIF.
+
     APPEND ls_message TO mt_messages.
     mv_messages_count = mv_messages_count + 1.
 
@@ -338,6 +395,12 @@ CLASS lcl_messages_system IMPLEMENTATION.
   METHOD mapping_to_internal.
 
     DATA: ls_internal TYPE ty_internal_message.
+
+    IF sy-msgid IS INITIAL
+    OR sy-msgty IS INITIAL
+    OR sy-msgno IS INITIAL.
+      RETURN.
+    ENDIF.
 
     ls_internal-id          = sy-msgid.
     ls_internal-type        = sy-msgty.
@@ -392,6 +455,9 @@ CLASS lcl_messages_bapiret1 IMPLEMENTATION.
           ls_internal TYPE ty_internal_message.
 
     ls_bapiret1 = messages.
+    IF ls_bapiret1 IS INITIAL.
+      RETURN.
+    ENDIF.
     MOVE-CORRESPONDING ls_bapiret1 TO ls_internal.
     APPEND ls_internal TO et_internal.
 
@@ -422,6 +488,122 @@ ENDCLASS.
 *
 *----------------------------------------------------------------------*
 CLASS lcl_messages_balloghndl IMPLEMENTATION.
+
+  METHOD mapping_to_internal.
+
+* "if BAL_LOG_READ exists
+    FIELD-SYMBOLS: <fs_bal_s_msg> TYPE bal_s_msg.
+
+    DATA: lt_t_msg      TYPE STANDARD TABLE OF bal_s_msg WITH DEFAULT KEY,
+          lv_log_handle TYPE balloghndl,
+          ls_internal   TYPE ty_internal_message.
+
+    lv_log_handle = messages.
+
+    CALL FUNCTION 'BAL_LOG_READ'
+      EXPORTING
+        i_log_handle  = lv_log_handle
+        et_msg        = lt_t_msg
+      EXCEPTIONS
+        log_not_found = 1
+        OTHERS        = 2.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+
+    LOOP AT lt_t_msg ASSIGNING <fs_bal_s_msg>.
+      ls_internal-type        = <fs_bal_s_msg>-msgty.
+      ls_internal-id          = <fs_bal_s_msg>-msgid.
+      ls_internal-number      = <fs_bal_s_msg>-msgno.
+      ls_internal-message_v1  = <fs_bal_s_msg>-msgv1.
+      ls_internal-message_v2  = <fs_bal_s_msg>-msgv2.
+      ls_internal-message_v3  = <fs_bal_s_msg>-msgv3.
+      ls_internal-message_v4  = <fs_bal_s_msg>-msgv4.
+      ls_internal-message_v4  = <fs_bal_s_msg>-msgv4.
+      ls_internal-level       = <fs_bal_s_msg>-detlevel.
+      ls_internal-probclass   = <fs_bal_s_msg>-probclass.
+      IF ls_internal-type IS INITIAL.
+        ls_internal-type = iv_msgty.
+      ENDIF.
+      APPEND ls_internal TO et_internal.
+      CLEAR ls_internal.
+    ENDLOOP.
+
+*    " BAL_LOG_READ doesn't exist, we use BAL_GLB_SEARCH_MSG
+*    FIELD-SYMBOLS: <fs_bal_s_msg> TYPE bal_s_msg.
+*
+*    DATA: lt_t_msg      TYPE STANDARD TABLE OF bal_s_msg WITH DEFAULT KEY,
+*          lv_log_handle TYPE balloghndl,
+*          ls_internal   TYPE ty_internal_message,
+*          lt_log_handle TYPE bal_t_logh,
+*          lt_msg_handle TYPE bal_t_msgh,
+*          ls_msg_handle TYPE BALMSGHNDL,
+*          ls_s_msg      TYPE bal_s_msg.
+*
+*    lv_log_handle = messages.
+*
+*    APPEND lv_log_handle TO lt_log_handle.
+*
+**    " in memory ?
+*    CALL FUNCTION 'BAL_GLB_SEARCH_MSG'
+*      EXPORTING
+*        i_t_log_handle = lt_log_handle
+*      IMPORTING
+*        e_t_msg_handle = lt_msg_handle
+*      EXCEPTIONS
+*        msg_not_found  = 1
+*        OTHERS         = 2.
+*    IF NOT sy-subrc = 0.
+*      " in DB ?
+*      CALL FUNCTION 'BAL_DB_LOAD'
+*        EXPORTING
+*          i_t_log_handle     = lt_log_handle
+*        IMPORTING
+**         E_T_LOG_HANDLE     =
+*          e_t_msg_handle     = lt_msg_handle
+**         E_T_LOCKED         =
+*        EXCEPTIONS
+*          no_logs_specified  = 1
+*          log_not_found      = 2
+*          log_already_loaded = 3
+*          OTHERS             = 4.
+*      IF sy-subrc <> 0.
+*        "nothing found.
+*        RETURN.
+*      ENDIF.
+*    ENDIF.
+*
+*    LOOP AT lt_msg_handle INTO ls_msg_handle.
+*      CALL FUNCTION 'BAL_LOG_MSG_READ'
+*        EXPORTING
+*          i_s_msg_handle = ls_msg_handle
+*        IMPORTING
+*          e_s_msg        = ls_s_msg
+*        EXCEPTIONS
+*          log_not_found  = 1
+*          msg_not_found  = 2
+*          OTHERS         = 3.
+*      IF sy-subrc <> 0.
+*        CONTINUE.
+*      ENDIF.
+*      ls_internal-type        = ls_s_msg-msgty.
+*      ls_internal-id          = ls_s_msg-msgid.
+*      ls_internal-number      = ls_s_msg-msgno.
+*      ls_internal-message_v1  = ls_s_msg-msgv1.
+*      ls_internal-message_v2  = ls_s_msg-msgv2.
+*      ls_internal-message_v3  = ls_s_msg-msgv3.
+*      ls_internal-message_v4  = ls_s_msg-msgv4.
+*      ls_internal-message_v4  = ls_s_msg-msgv4.
+*      ls_internal-level       = ls_s_msg-detlevel.
+*      ls_internal-probclass   = ls_s_msg-probclass.
+*      IF ls_internal-type IS INITIAL.
+*        ls_internal-type = iv_msgty.
+*      ENDIF.
+*      APPEND ls_internal TO et_internal.
+*      CLEAR ls_internal.
+*    ENDLOOP.
+  ENDMETHOD.
 
   METHOD mapping_to_external.
 
@@ -558,6 +740,66 @@ CLASS lcl_messages_bal_t_msg IMPLEMENTATION.
 ENDCLASS.                    "lcl_messages_bal_t_msg IMPLEMENTATION
 
 
+*----------------------------------------------------------------------*
+*       CLASS lcl_messages_bal_t_msg IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_messages_bal_s_msg IMPLEMENTATION.
+  METHOD mapping_to_external.
+
+    DATA:
+      lt_messages TYPE ty_t_internal_message,
+      ls_message  TYPE ty_internal_message,
+      ls_s_msg TYPE bal_s_msg.
+
+    get_mt_messages(
+      IMPORTING
+        et_messages = lt_messages ).
+
+    READ TABLE lt_messages INTO ls_message INDEX 1.
+    IF sy-subrc IS INITIAL.
+
+      ls_s_msg-msgty      = ls_message-type.
+      ls_s_msg-msgid      = ls_message-id.
+      ls_s_msg-msgno      = ls_message-number.
+      ls_s_msg-msgv1      = ls_message-message_v1.
+      ls_s_msg-msgv2      = ls_message-message_v2.
+      ls_s_msg-msgv3      = ls_message-message_v3.
+      ls_s_msg-msgv4      = ls_message-message_v4.
+      ls_s_msg-detlevel   = ls_message-level.
+      ls_s_msg-probclass  = ls_message-probclass.
+    ENDIF.
+
+    messages = ls_s_msg.
+
+  ENDMETHOD.                    "mapping_to_external
+
+  METHOD mapping_to_internal.
+
+    DATA: ls_s_msg    TYPE  bal_s_msg,
+          ls_internal TYPE ty_internal_message.
+
+    ls_s_msg = messages.
+
+    ls_internal-type        = ls_s_msg-msgty.
+    ls_internal-id          = ls_s_msg-msgid.
+    ls_internal-number      = ls_s_msg-msgno.
+    ls_internal-message_v1  = ls_s_msg-msgv1.
+    ls_internal-message_v2  = ls_s_msg-msgv2.
+    ls_internal-message_v3  = ls_s_msg-msgv3.
+    ls_internal-message_v4  = ls_s_msg-msgv4.
+    IF ls_internal-type IS INITIAL.
+      ls_internal-type = iv_msgty.
+    ENDIF.
+    APPEND ls_internal TO et_internal.
+    CLEAR ls_internal.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+
 
 *----------------------------------------------------------------------*
 *       CLASS lcl_messages_bapi_order_rtrn_t IMPLEMENTATION
@@ -690,6 +932,9 @@ CLASS lcl_messages_bapiret2 IMPLEMENTATION.
           ls_internal TYPE ty_internal_message.
 
     ls_bapiret2 = messages.
+    IF ls_bapiret2 IS INITIAL.
+      RETURN.
+    ENDIF.
     IF ls_bapiret2-type IS INITIAL.
       ls_bapiret2-type = get_default_msg_type( ).
     ENDIF.
@@ -916,6 +1161,20 @@ CLASS lcl_messages_type IMPLEMENTATION.
     INSERT ls_routing_ref INTO TABLE mth_routing_ref.
 
     ls_routing_ref-way        = 'O'.
+    ls_routing_ref-type_kind  = cl_abap_typedescr=>typekind_struct2.
+    ls_routing_ref-type_name  = 'BAL_S_MSG'.
+    ls_routing_ref-class_name = 'LCL_MESSAGES_BAL_S_MSG'.
+    INSERT ls_routing_ref INTO TABLE mth_routing_ref.
+    ls_routing_ref-way        = 'I'.
+    INSERT ls_routing_ref INTO TABLE mth_routing_ref.
+
+    ls_routing_ref-way        = 'O'.
+    ls_routing_ref-type_kind  = cl_abap_typedescr=>typekind_char.
+    ls_routing_ref-type_name  = 'BALLOGHNDL'.
+    ls_routing_ref-class_name = 'LCL_MESSAGES_BALLOGHNDL'.
+    INSERT ls_routing_ref INTO TABLE mth_routing_ref.
+
+    ls_routing_ref-way        = 'I'.
     ls_routing_ref-type_kind  = cl_abap_typedescr=>typekind_char.
     ls_routing_ref-type_name  = 'BALLOGHNDL'.
     ls_routing_ref-class_name = 'LCL_MESSAGES_BALLOGHNDL'.
@@ -940,7 +1199,8 @@ CLASS lcl_messages_type IMPLEMENTATION.
         lo_tabdescr ?= lo_typedescr.
         get_table_type_descr( EXPORTING io_tabledescr = lo_tabdescr
                               IMPORTING eo_typedescr  = lo_typedescr ).
-      WHEN cl_abap_typedescr=>typekind_struct1.
+      WHEN cl_abap_typedescr=>typekind_struct1
+        OR cl_abap_typedescr=>typekind_struct2.
       WHEN cl_abap_typedescr=>typekind_char
       OR   cl_abap_typedescr=>typekind_string.
 
@@ -1088,6 +1348,18 @@ CLASS  lcl_messages IMPLEMENTATION.
     add_n_raise( EXPORTING messages = messages
                            iv_msgty = iv_msgty ).
   ENDMETHOD.                    "lif_messages~add_n_raise
+  METHOD lif_messages~set_current_context.
+    set_current_context( is_current_context ).
+  ENDMETHOD.
+  METHOD lif_messages~set_current_params.
+    set_current_params( is_current_params ).
+  ENDMETHOD.
+  METHOD lif_messages~get_current_context.
+    rs_current_context = get_current_context( ).
+  ENDMETHOD.
+  METHOD lif_messages~get_current_params.
+    rs_current_params = get_current_params( ).
+  ENDMETHOD.
   METHOD lif_messages~add.
     add( EXPORTING messages = messages
                    iv_msgty = iv_msgty ).
@@ -1134,6 +1406,24 @@ CLASS  lcl_messages IMPLEMENTATION.
   METHOD get_messages_count.
     rv_count = mi_messages->get_messages_count( ).
   ENDMETHOD.                    "get_messages_count
+  METHOD set_current_context.
+    mi_messages->set_current_context( is_current_context ).
+  ENDMETHOD.
+  METHOD set_current_params.
+    mi_messages->set_current_params( is_current_params ).
+  ENDMETHOD.
+  METHOD get_current_context.
+    rs_current_context = mi_messages->get_current_context( ).
+  ENDMETHOD.
+  METHOD to_string.
+    rv_messages = mi_messages->to_string( ).
+  ENDMETHOD.
+  METHOD get_current_params.
+    rs_current_params = mi_messages->get_current_params( ).
+  ENDMETHOD.
+  METHOD lif_messages~to_string.
+    rv_messages = to_string( ).
+  ENDMETHOD.
   METHOD get_default_msg_type.
     rv_default_msg_type = mi_messages->get_default_msg_type( ).
   ENDMETHOD.                    "get_default_msg_type
@@ -1259,7 +1549,7 @@ CLASS lcl_ballog  IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD lif_log~display.
-    display( ).
+    display( iv_raise_if_one_message ).
   ENDMETHOD.
 
   METHOD get_display_profile.

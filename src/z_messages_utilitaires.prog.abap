@@ -158,32 +158,34 @@ START-OF-SELECTION.
       WRITE: / 'Error message(s) occured'.
   ENDTRY.
 
+ " lif_messages to string
+  WRITE li_messages->to_string( ).
 
 
-  TRY.
-      " display messages from lif_messages
-      DATA: li_messages_displayer TYPE REF TO lif_messages_displayer.
+    TRY.
+  " display messages from lif_messages
+  DATA: li_messages_displayer TYPE REF TO lif_messages_displayer.
 
-      li_messages_displayer = lcl_messages_displayer_factory=>get_instance(
-                               iv_display_type       = lcl_messages_displayer_factory=>c_display_type-popup ).
-      li_messages_displayer->display_messages( ii_messages = li_messages ).
-    CATCH lcx_error_occurs.  "
+  li_messages_displayer = lcl_messages_displayer_factory=>get_instance(
+                           iv_display_type       = lcl_messages_displayer_factory=>c_display_type-popup ).
+  li_messages_displayer->display_messages( ii_messages = li_messages ).
+CATCH lcx_error_occurs.  "
 
-  ENDTRY.
+ENDTRY.
 
-  TRY.
+TRY.
 
-      DATA: li_log TYPE REF TO lif_log,
-            ls_log TYPE bal_s_log.
+  DATA: li_log TYPE REF TO lif_log,
+        ls_log TYPE bal_s_log.
 
-      li_log = lcl_log_factory=>get_instance( ).
-      ls_log-object    = 'ZTEST'.
-      ls_log-subobject = 'MSG_N_LOG'.
-      li_log->create( is_log = ls_log ).
-      li_log->add_messages( ii_messages = li_messages ).
-      li_log->save( ).
-      li_log->display( ).
+  li_log = lcl_log_factory=>get_instance( ).
+  ls_log-object    = 'ZTEST'.
+  ls_log-subobject = 'MSG_N_LOG'.
+  li_log->create( is_log = ls_log ).
+  li_log->add_messages( ii_messages = li_messages ).
+  li_log->save( ).
+  li_log->display( ).
 
-    CATCH lcx_error_occurs.  "
+CATCH lcx_error_occurs.  "
 
-  ENDTRY.
+ENDTRY.

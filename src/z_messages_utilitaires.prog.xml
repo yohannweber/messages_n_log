@@ -4,6 +4,8 @@
   <asx:values>
    <PROGDIR>
     <NAME>Z_MESSAGES_UTILITAIRES</NAME>
+    <STATE>A</STATE>
+    <VARCL>X</VARCL>
     <SUBC>1</SUBC>
     <RLOAD>E</RLOAD>
     <FIXPT>X</FIXPT>
