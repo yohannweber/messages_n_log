@@ -1,4 +1,4 @@
-# messages_n_log
+# messages and log
 Manage messages more easily
 
 # Features
