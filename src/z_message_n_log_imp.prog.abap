@@ -751,7 +751,7 @@ CLASS lcl_messages_bal_s_msg IMPLEMENTATION.
     DATA:
       lt_messages TYPE ty_t_internal_message,
       ls_message  TYPE ty_internal_message,
-      ls_s_msg TYPE bal_s_msg.
+      ls_s_msg    TYPE bal_s_msg.
 
     get_mt_messages(
       IMPORTING
@@ -1533,6 +1533,13 @@ CLASS lcl_ballog  IMPLEMENTATION.
     set_display_profile( is_display_profile = is_display_profile ).
   ENDMETHOD.
 
+  METHOD lif_log~get_msg_filter.
+    rs_msg_filter = get_msg_filter( ).
+  ENDMETHOD.
+  METHOD lif_log~set_msg_filter.
+    set_msg_filter( is_msg_filter = is_msg_filter ).
+  ENDMETHOD.
+
   METHOD lif_log~create.
     create(
         is_log = is_log
@@ -1559,6 +1566,14 @@ CLASS lcl_ballog  IMPLEMENTATION.
     ms_display_profile = is_display_profile.
   ENDMETHOD.
 
+  METHOD set_msg_filter.
+    ms_msg_filter = is_msg_filter.
+  ENDMETHOD.
+
+  METHOD get_msg_filter.
+    rs_msg_filter = ms_msg_filter.
+  ENDMETHOD.
+
   METHOD add_messages.
     IF mv_log_handle IS INITIAL.
       create( ).
@@ -1575,7 +1590,8 @@ CLASS lcl_ballog  IMPLEMENTATION.
     DATA :
       lt_log_handle      TYPE bal_t_logh,
       ls_display_profile TYPE bal_s_prof,
-      ls_return          TYPE bapiret2.
+      ls_return          TYPE bapiret2,
+      ls_msg_filter      TYPE  bal_s_mfil.
 
     IF mv_log_handle IS INITIAL.
       RETURN.
@@ -1600,12 +1616,14 @@ CLASS lcl_ballog  IMPLEMENTATION.
     ELSE.
 
       ls_display_profile = get_display_profile( ).
+      ls_msg_filter      = get_msg_filter( ).
 
       APPEND mv_log_handle TO lt_log_handle.
       CALL FUNCTION 'BAL_DSP_LOG_DISPLAY'
         EXPORTING
           i_s_display_profile  = ls_display_profile
           i_t_log_handle       = lt_log_handle
+          i_s_msg_filter       = ls_msg_filter
         EXCEPTIONS
           profile_inconsistent = 1
           internal_error       = 2

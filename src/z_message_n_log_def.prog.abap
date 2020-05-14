@@ -37,7 +37,9 @@ INTERFACE lif_log.
     save RAISING   lcx_error_occurs,
     get_log_handle RETURNING VALUE(rv_log_handle) TYPE balloghndl,
     get_display_profile RETURNING VALUE(rs_display_profile) TYPE bal_s_prof,
-    set_display_profile IMPORTING is_display_profile        TYPE bal_s_prof.
+    set_display_profile IMPORTING is_display_profile        TYPE bal_s_prof,
+    get_msg_filter RETURNING VALUE(rs_msg_filter) TYPE bal_s_mfil,
+    set_msg_filter IMPORTING is_msg_filter        TYPE bal_s_mfil.
 
 
 ENDINTERFACE.                    "lif_log DEFINITION
@@ -149,9 +151,12 @@ CLASS lcl_ballog DEFINITION.
       display IMPORTING iv_raise_if_one_message TYPE boolean DEFAULT ''
               RAISING   lcx_error_occurs,
       get_display_profile RETURNING VALUE(rs_display_profile) TYPE bal_s_prof,
-      set_display_profile IMPORTING is_display_profile        TYPE bal_s_prof.
+      set_display_profile IMPORTING is_display_profile        TYPE bal_s_prof,
+      get_msg_filter RETURNING VALUE(rs_msg_filter) TYPE bal_s_mfil,
+      set_msg_filter IMPORTING is_msg_filter        TYPE bal_s_mfil.
 
-    DATA: ms_display_profile TYPE bal_s_prof.
+    DATA: ms_display_profile TYPE bal_s_prof,
+          ms_msg_filter      TYPE bal_s_mfil.
 
   PRIVATE SECTION.
 
@@ -229,7 +234,7 @@ CLASS lcl_messages DEFINITION.
       set_current_context IMPORTING !is_current_context TYPE bal_s_cont,
       set_current_params IMPORTING !is_current_params TYPE bal_s_parm,
       get_current_params     RETURNING VALUE(rs_current_params) TYPE bal_s_parm,
-      to_string RETURNING VALUE(rv_messages) type string,
+      to_string RETURNING VALUE(rv_messages) TYPE string,
       get_current_context     RETURNING VALUE(rs_current_context) TYPE bal_s_cont,
       set_current_level     IMPORTING !iv_current_level TYPE ballevel,
       set_current_probclass IMPORTING !iv_current_probclass TYPE balprobcl,
