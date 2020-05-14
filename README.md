@@ -62,6 +62,9 @@ li_messages->get( IMPORTING messages = lt_messages ).
 - Table of BAPIRET2
 - Table of BDCMSGCOLL
 - STRING
+- Table of BAL_S_MSG
+- Structure of BAL_S_MSG
+- BALLOGHNDL
 - CHAR
 - IF_MESSAGE interface
 - LIF_MESSAGES interface (self)
