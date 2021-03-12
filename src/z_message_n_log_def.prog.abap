@@ -248,7 +248,8 @@ CLASS lcl_messages DEFINITION.
       increase_current_level,
       decrease_current_level,
       constructor,
-      clear.
+      clear,
+      get_messages_internal RETURNING VALUE(ri_messages_internal) TYPE REF TO lif_messages_internal.
 
   PROTECTED SECTION.
 

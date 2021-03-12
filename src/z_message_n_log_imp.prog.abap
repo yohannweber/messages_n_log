@@ -523,6 +523,7 @@ CLASS lcl_messages_balloghndl IMPLEMENTATION.
       ls_internal-message_v4  = <fs_bal_s_msg>-msgv4.
       ls_internal-level       = <fs_bal_s_msg>-detlevel.
       ls_internal-probclass   = <fs_bal_s_msg>-probclass.
+      ls_internal-context   = <fs_bal_s_msg>-context.
       IF ls_internal-type IS INITIAL.
         ls_internal-type = iv_msgty.
       ENDIF.
@@ -632,6 +633,8 @@ CLASS lcl_messages_balloghndl IMPLEMENTATION.
         ls_ballog-msgv4      = ls_message-message_v4.
         ls_ballog-detlevel   = ls_message-level.
         ls_ballog-probclass  = ls_message-probclass.
+        ls_ballog-probclass  = ls_message-probclass.
+        ls_ballog-context    = ls_message-context.
 
 
 
@@ -656,6 +659,7 @@ CLASS lcl_messages_balloghndl IMPLEMENTATION.
             i_msgty          = ls_message-type
             i_text           = ls_message-message
             i_probclass      = ls_message-probclass
+            i_s_context      = ls_message-context
           EXCEPTIONS
             log_not_found    = 1
             msg_inconsistent = 2
@@ -841,17 +845,18 @@ CLASS lcl_messages_lif_messages IMPLEMENTATION.
 
     FIELD-SYMBOLS : <fs_bapiret2>   TYPE bapiret2.
 
-    DATA: ls_internal TYPE ty_internal_message,
-          lt_bapiret2 TYPE bapiret2_t,
-          li_messages TYPE REF TO lif_messages.
-
-    li_messages ?= messages.
-    li_messages->get( IMPORTING messages = lt_bapiret2 ).
-    LOOP AT lt_bapiret2 ASSIGNING <fs_bapiret2>.
-      MOVE-CORRESPONDING <fs_bapiret2> TO ls_internal.
-      APPEND ls_internal TO et_internal.
-      CLEAR ls_internal.
-    ENDLOOP.
+    DATA: ls_internal   TYPE ty_internal_message,
+          lt_bapiret2   TYPE bapiret2_t,
+          lr_messages   TYPE REF TO lcl_messages,
+          lr_messages_i TYPE REF TO lcl_messages_internal.
+    TRY.
+        lr_messages ?= messages.
+        lr_messages_i ?= lr_messages->get_messages_internal( ).
+        lr_messages_i->get_mt_messages(
+          IMPORTING
+            et_messages =  et_internal  ).
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
 
   ENDMETHOD.                    "mapping_to_internal
 
@@ -1473,7 +1478,10 @@ CLASS  lcl_messages IMPLEMENTATION.
   ENDMETHOD.                    "lif_messages~clear
   METHOD clear.
     mi_messages->clear( ).
-  ENDMETHOD.                    "clear
+  ENDMETHOD.
+  METHOD get_messages_internal.
+    ri_messages_internal = mi_messages.
+  ENDMETHOD.                  "clear
   METHOD add.
     lcl_messages_type=>factory(
       EXPORTING
